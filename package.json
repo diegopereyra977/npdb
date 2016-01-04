@@ -1,0 +1,64 @@
+{
+	"name": "perl-debug",
+	"displayName": "Perl Debug",
+	"version": "0.10.18",
+	"publisher": "dpereyra",
+	"description": "Starter extension for developing perl debug adapters for VS Code.",
+	"author": {
+		"name": "Diego Pereyra"
+	},
+	"engines": {
+		"vscode": "^0.10.1"
+	},
+	"icon": "images/mock-debug-icon.svg",
+	"categories": [
+		"Debuggers"
+	],
+	"private": true,
+	"dependencies": {
+		"node-perl-debugger": "*"
+	},
+	"contributes": {
+		"debuggers": [
+			{
+				"type": "perl",
+				"label": "Perl Debug",
+				"enableBreakpointsFor": {
+					"languageIds": [
+						"markdown"
+					]
+				},
+				"program": "./out/mock/perlDebug.js",
+				"runtime": "node",
+				"configurationAttributes": {
+					"launch": {
+						"required": [
+							"program"
+						],
+						"properties": {
+							"program": {
+								"type": "string",
+								"description": "Workspace relative path to a text file.",
+								"default": "test.pl"
+							},
+							"stopOnEntry": {
+								"type": "boolean",
+								"description": "Automatically stop after launch.",
+								"default": true
+							}
+						}
+					}
+				},
+				"initialConfigurations": [
+					{
+						"name": "Perl-Debug",
+						"type": "perl",
+						"request": "launch",
+						"program": "test.pl",
+						"stopOnEntry": true
+					}
+				]
+			}
+		]
+	}
+}
