@@ -6,13 +6,13 @@ var __extends = (this && this.__extends) || function (d, b) {
     function __() { this.constructor = d; }
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
-var debugSession_1 = require('./common/debugSession');
-var handles_1 = require('./common/handles');
+var vscode_debugadapter_1 = require('vscode-debugadapter');
+//var handles_1 = require('./common/handles');
 var fs_1 = require('fs');
 var path_1 = require('path');
 // var vscode = require('vscode');
-var DebuggerHost = require("/home/diego/npdb/node_modules/node-perl-debugger/src/index").DebuggerHost;
-
+var DebuggerHost = require('./node_modules/node-perl-debugger/src/index.js').DebuggerHost;
+  
 var PerlDebugSession = (function (_super) {
     __extends(PerlDebugSession, _super);
     function PerlDebugSession(debuggerLinesStartAt1, isServer) {
@@ -22,7 +22,23 @@ var PerlDebugSession = (function (_super) {
         this._sourceLines = [];
         this._currentLine = 0;
         this._breakPoints = {};
-        this._variableHandles = new handles_1.Handles();
+        this._variableHandles = new vscode_debugadapter_1.Handles();
+        
+        this.isReady = false;
+        this.debug = new DebuggerHost({
+            log: process.stdout,
+            port: 12345
+        });
+        this.debug.on("disconnection", function() {
+            this.debug.close();
+        });
+        
+        this.debug.on("close", function() {
+            this.trace("Finished");
+        });//*/
+        
+        
+        
     }
     Object.defineProperty(PerlDebugSession.prototype, "_currentLine", {
         get: function () {
@@ -30,7 +46,7 @@ var PerlDebugSession = (function (_super) {
         },
         set: function (line) {
             this.__currentLine = line;
-            this.sendEvent(new debugSession_1.OutputEvent("line: " + line + "\n")); // print current line on debug console
+            this.sendEvent(new vscode_debugadapter_1.OutputEvent("line: " + line + "\n")); // print current line on debug console
         },
         enumerable: true,
         configurable: true
@@ -38,7 +54,8 @@ var PerlDebugSession = (function (_super) {
     PerlDebugSession.prototype.initializeRequest = function (response, args) {
         this.sendResponse(response);
         // now we are ready to accept breakpoints -> fire the initialized event to give UI a chance to set breakpoints
-        this.sendEvent(new debugSession_1.InitializedEvent());
+        this.sendEvent(new vscode_debugadapter_1.InitializedEvent());
+        this.debug.listen();
         
     };
     PerlDebugSession.prototype.launchRequest = function (response, args) {
@@ -48,12 +65,13 @@ var PerlDebugSession = (function (_super) {
             this._currentLine = 0;
             this.sendResponse(response);
             // we stop on the first line
-            this.sendEvent(new debugSession_1.StoppedEvent("entry", PerlDebugSession.THREAD_ID));
+            this.sendEvent(new vscode_debugadapter_1.StoppedEvent("entry", PerlDebugSession.THREAD_ID));
         }
         else {
             // we just start to run until we hit a breakpoint or an exception
             this.continueRequest(response, { threadId: PerlDebugSession.THREAD_ID });
         }
+        
     };
     PerlDebugSession.prototype.setBreakPointsRequest = function (response, args) {
         var path = args.source.path;
@@ -84,13 +102,12 @@ var PerlDebugSession = (function (_super) {
             breakpoints: breakpoints
         };
         this.sendResponse(response);
-        console.log("A ver si esto anda.");
     };
     PerlDebugSession.prototype.threadsRequest = function (response) {
         // return the default thread
         response.body = {
             threads: [
-                new debugSession_1.Thread(PerlDebugSession.THREAD_ID, "thread 1")
+                new vscode_debugadapter_1.Thread(PerlDebugSession.THREAD_ID, "thread 1")
             ]
         };
         this.sendResponse(response);
@@ -102,19 +119,23 @@ var PerlDebugSession = (function (_super) {
         for (var i = 0; i < 3; i++) {
             // use a word of the line as the stackframe name
             var name_1 = words.length > i ? words[i] : "frame";
-            frames.push(new debugSession_1.StackFrame(i, name_1 + "(" + i + ")", new debugSession_1.Source(path_1.basename(this._sourceFile), this.convertDebuggerPathToClient(this._sourceFile)), this.convertDebuggerLineToClient(this._currentLine), 0));
+            frames.push(new vscode_debugadapter_1.StackFrame(i, name_1 + "(" + i + ")", new vscode_debugadapter_1.Source(path_1.basename(this._sourceFile), this.convertDebuggerPathToClient(this._sourceFile)), this.convertDebuggerLineToClient(this._currentLine), 0));
         }
         response.body = {
             stackFrames: frames
         };
-        this.sendResponse(response);
+        this.trace(response);
+        this.debug.on("ready", function(){this.sendResponse(this._commandPD.stacktrace())});    
+        
+        //this.sendResponse(response);
+        
     };
     PerlDebugSession.prototype.scopesRequest = function (response, args) {
         var frameReference = args.frameId;
         var scopes = new Array();
-        scopes.push(new debugSession_1.Scope("Local", this._variableHandles.create("local_" + frameReference), false));
-        scopes.push(new debugSession_1.Scope("Closure", this._variableHandles.create("closure_" + frameReference), false));
-        scopes.push(new debugSession_1.Scope("Global", this._variableHandles.create("global_" + frameReference), true));
+        scopes.push(new vscode_debugadapter_1.Scope("Local", this._variableHandles.create("local_" + frameReference), false));
+        scopes.push(new vscode_debugadapter_1.Scope("Closure", this._variableHandles.create("closure_" + frameReference), false));
+        scopes.push(new vscode_debugadapter_1.Scope("Global", this._variableHandles.create("global_" + frameReference), true));
         response.body = {
             scopes: scopes
         };
@@ -148,7 +169,9 @@ var PerlDebugSession = (function (_super) {
         response.body = {
             variables: variables
         };
+        //this.trace(this._commandPD.variables());
         this.sendResponse(response);
+        
     };
     PerlDebugSession.prototype.continueRequest = function (response, args) {
         this.trace("Hello World!!!!");
@@ -158,34 +181,36 @@ var PerlDebugSession = (function (_super) {
             if (lines && lines.indexOf(ln) >= 0) {
                 this._currentLine = ln;
                 this.sendResponse(response);
-                this.sendEvent(new debugSession_1.StoppedEvent("step", PerlDebugSession.THREAD_ID));
+                this.sendEvent(new vscode_debugadapter_1.StoppedEvent("step", PerlDebugSession.THREAD_ID));
                 return;
             }
             // if word 'exception' found in source -> throw exception
             if (this._sourceLines[ln].indexOf("exception") >= 0) {
                 this._currentLine = ln;
                 this.sendResponse(response);
-                this.sendEvent(new debugSession_1.StoppedEvent("exception", PerlDebugSession.THREAD_ID));
-                this.sendEvent(new debugSession_1.OutputEvent("exception in line: " + ln + "\n", 'stderr'));
+                this.sendEvent(new vscode_debugadapter_1.StoppedEvent("exception", PerlDebugSession.THREAD_ID));
+                this.sendEvent(new vscode_debugadapter_1.OutputEvent("exception in line: " + ln + "\n", 'stderr'));
                 return;
             }
         }
         this.sendResponse(response);
+        //this.trace(this._commandPD.continue());
         // no more lines: run to end
-        this.sendEvent(new debugSession_1.TerminatedEvent());
+        this.sendEvent(new vscode_debugadapter_1.TerminatedEvent());
     };
     PerlDebugSession.prototype.nextRequest = function (response, args) {
+        
         for (var ln = this._currentLine + 1; ln < this._sourceLines.length; ln++) {
             if (this._sourceLines[ln].trim().length > 0) {
                 this._currentLine = ln;
                 this.sendResponse(response);
-                this.sendEvent(new debugSession_1.StoppedEvent("step", PerlDebugSession.THREAD_ID));
+                this.sendEvent(new vscode_debugadapter_1.StoppedEvent("step", PerlDebugSession.THREAD_ID));
                 return;
             }
         }
         this.sendResponse(response);
         // no more lines: run to end
-        this.sendEvent(new debugSession_1.TerminatedEvent());
+        this.sendEvent(new vscode_debugadapter_1.TerminatedEvent());
     };
     PerlDebugSession.prototype.evaluateRequest = function (response, args) {
         response.body = {
@@ -195,11 +220,11 @@ var PerlDebugSession = (function (_super) {
         this.sendResponse(response);
     };
     PerlDebugSession.prototype.trace = function(valueToSendConsole){
-        this.sendEvent(new debugSession_1.OutputEvent(valueToSendConsole));
+        this.sendEvent(new vscode_debugadapter_1.OutputEvent(valueToSendConsole));
     };
     // we don't support multiple threads, so we can use a hardcoded ID for the default thread
     PerlDebugSession.THREAD_ID = 1;
     return PerlDebugSession;
-})(debugSession_1.DebugSession);
-debugSession_1.DebugSession.run(PerlDebugSession);
+})(vscode_debugadapter_1.DebugSession);
+vscode_debugadapter_1.DebugSession.run(PerlDebugSession);
 //# sourceMappingURL=mockDebug.js.map

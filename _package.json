@@ -1,0 +1,26 @@
+{
+	"name": "npdb",
+	"displayName": "npdb",
+	"description": "Is a node perl debugger",
+	"version": "0.0.1",
+	"publisher": "diegopereyra977",
+	"engines": {
+		"vscode": "^0.10.1"
+	},
+	"categories": [
+		"Other"
+	],
+	"activationEvents": [
+		"onCommand:extension.sayHello"
+	],
+	"main": "./extension",
+	"contributes": {
+		"commands": [{
+			"command": "extension.sayHello",
+			"title": "Hello World"
+		}]
+	},
+	"devDependencies": {
+		"vscode": "0.10.x"
+	}
+}

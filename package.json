@@ -15,9 +15,7 @@
 		"Debuggers"
 	],
 	"private": true,
-	"dependencies": {
-		"node-perl-debugger": "*"
-	},
+	
 	"contributes": {
 		"debuggers": [
 			{
@@ -28,7 +26,7 @@
 						"markdown"
 					]
 				},
-				"program": "./out/mock/perlDebug.js",
+				"program": "perlDebug.js",
 				"runtime": "node",
 				"configurationAttributes": {
 					"launch": {
@@ -39,7 +37,7 @@
 							"program": {
 								"type": "string",
 								"description": "Workspace relative path to a text file.",
-								"default": "test.pl"
+								"default": "testPerlProgram.pl"
 							},
 							"stopOnEntry": {
 								"type": "boolean",
@@ -54,7 +52,7 @@
 						"name": "Perl-Debug",
 						"type": "perl",
 						"request": "launch",
-						"program": "test.pl",
+						"program": "testPerlProgram.pl",
 						"stopOnEntry": true
 					}
 				]

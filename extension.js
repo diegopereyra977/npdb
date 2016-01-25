@@ -18,7 +18,6 @@ function activate(context) {
 
 		// Display a message box to the user
 		vscode.window.showInformationMessage('Hello World!');
-		
 	});
 	
 	context.subscriptions.push(disposable);
